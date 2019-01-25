@@ -10,7 +10,7 @@ import librosa
 import librosa.display, librosa.core, librosa.output
 import matplotlib.pyplot as plt
 import numpy as np
-
+from math import *
 
 #import audio_utilities
 # open file, stft
@@ -49,7 +49,7 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 
 # phase reconstruction with griffin and lim algorithm
 
-def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations):
+def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations, n_fft, hop_length):
     """Reconstruct an audio signal from a magnitude spectrogram.
 
     Given a magnitude spectrogram as input, reconstruct
@@ -75,7 +75,7 @@ def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations)
     n = iterations # number of iterations of Griffin-Lim algorithm.
     while n > 0:
         n -= 1
-        reconstruction_spectrogram = librosa.stft(x_reconstruct, n_fft=1024)
+        reconstruction_spectrogram = librosa.stft(x_reconstruct, n_fft=n_fft, hop_length = hop_length)
         reconstruction_angle = np.angle(reconstruction_spectrogram)
         # Discard magnitude part of the reconstruction and use the supplied magnitude spectrogram instead.
         proposal_spectrogram = magnitude_spectrogram*np.exp(1.0j*reconstruction_angle)
@@ -86,7 +86,7 @@ def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations)
     return x_reconstruct
 
 #we have the magnitude mod, we want to have the phase.
-y1_gl_recons = reconstruct_sig_griffin_lim(mod,len(y1), 100)
+y1_gl_recons = reconstruct_sig_griffin_lim(mod,len(y1), 100, 1024, 256)
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/new_gl.wav'
                          , y1_gl_recons, sr1)
 
@@ -94,19 +94,19 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 ### reconstruction hautes fréquences.
 ## données sur le signal y1 (+sample rate sr1):
 # spectrogram
-D_low = D[0:255,:]
-D_high = D[255:, :]
+D_low = D[0:256,:]
+D_high = D[256:, :]
 # magnitude
-mod_low = mod[0:255,:]
-mod_high = mod[255:,:]
+mod_low = mod[0:256,:]
+mod_high = mod[256:,:]
 # phase
-phase_low = phase[0:255,:]
-phase_high = phase[255:,:]
+phase_low = phase[0:256,:]
+phase_high = phase[256:,:]
 
 ## reconstruction
 # on recopie 2 fois la dernière ligne
 # on met les hautes fréquences égales aux basses fréquences
-mod_low_new = np.concatenate((mod_low, [mod_low[254]]), axis=0)
+mod_low_new = np.concatenate((mod_low, [mod_low[255]]), axis=0)
 
 # calcul du niveau moyen des hf puis mise à l'échelle:
 def spectral_env(mod_low, mod_high):#même taille
@@ -119,17 +119,39 @@ def spectral_env(mod_low, mod_high):#même taille
         spec_env = np.append(spec_env, [low_mean/high_mean])
     return spec_env
         
+
+    
 #on multiplie par l'enveloppe spectrale
-def recons_sig(mod_low, mod_high, iterations):# iter pour griffin and lim
+def recons_sig(mod_low, mod_high, l_sig, iterations):
+    # l_sig et iter pour griffin and lim
     spec_env = spectral_env(mod_low, mod_high)
     mod_high_recons = (mod_low.T * spec_env).T
+    # shape (255,141)
+    # module total reconstruit
     mod_recons = np.concatenate((mod_low, mod_high_recons), axis=0)
-    #griffin and lim (seulement partie haute fréquence:
-    #implémenter griffin and lim pour qu'il renvoie plutôt la phase.
-    
+    #griffin and lim (seulement partie haute fréquence):
+    x_recons_high = reconstruct_sig_griffin_lim(mod_high_recons,
+                                                l_sig, iterations, 510, 256)
+    D_recons_high = librosa.stft(x_recons_high, 
+                                 n_fft=510, hop_length=256) # spectrogramme
+    D_recons = np.zeros((512, round(l_sig/256)))
+    D_recons[:256,:] = D_low
+    D_recons[256:, :] = D_recons_high
+    # signal reconstruit final (avec la phase):
+    x_recons = librosa.istft(D_recons, length=l_sig, hop_length=256)
+    return x_recons, D_recons
 
     
-
+### test:
+# signal sans reconstruction hautes fréquences
+l_sig = len(y1)
+sig_low = librosa.istft(D_low, length=l_sig, hop_length=256)
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/sig_sans_recons_hf.wav'
+                         , sig_low, sr1)
+#signal avec reconstruction hautes fréquences, 100 iter griffin and lim:
+sig_recons, D_recons = recons_sig(mod_low, mod_high, l_sig, 100)
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/sig_avec_recons_hf.wav'
+                         , sig_recons, sr1)
 
 
 
