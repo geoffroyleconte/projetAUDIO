@@ -31,7 +31,7 @@ for root, dirname, filenames in os.walk(audio_dir):
         audio_file = os.path.join(root, filename1)
         # enlever la condition sur le compteur c pour faire sur tous les
         # fichiers audio
-        if audio_file.endswith('.flac') and c<100:
+        if audio_file.endswith('.flac') and c<30:
             c+=1
             l_audio_dir.append(audio_file)
             yi, sri = sf.read(audio_file)
