@@ -71,7 +71,8 @@ sig_low = librosa.istft(D_low, length=l_sig, hop_length=256)
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/sig_sans_recons_hf.wav'
                          , sig_low, sr1)
 #signal avec reconstruction hautes fréquences, 100 iter griffin and lim:
-sig_recons, D_recons = f_uti.recons_sig(mod_low,D_low, mod_high, l_sig, 100)
+spec_env = f_uti.spectral_env(mod_low, mod_high)
+sig_recons, D_recons = f_uti.recons_sig(mod_low,D_low, spec_env, l_sig, 100)
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/sig_avec_recons_hf.wav'
                          , sig_recons, sr1)
 

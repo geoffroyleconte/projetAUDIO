@@ -68,12 +68,11 @@ def spectral_env(mod_low, mod_high):#même taille
     for i in range(n):
         low_mean = np.mean(mod_low[i])
         high_mean = np.mean(mod_high[i])
-        spec_env = np.append(spec_env, [low_mean/high_mean])
+        spec_env = np.append(spec_env, [high_mean/low_mean])
     return spec_env
 
-def recons_sig(mod_low, D_low, mod_high, l_sig, iterations):
+def recons_sig(mod_low, D_low, spec_env, l_sig, iterations):
     # l_sig et iter pour griffin and lim
-    spec_env = spectral_env(mod_low, mod_high)
     mod_high_recons = (mod_low.T * spec_env).T
     # shape (255,141)
     # module total reconstruit
@@ -111,8 +110,9 @@ def pipeline_sig_recons(input_sig_dir, output_dir):
     D_high = D[256:, :] # inconnu normalement
     mod_low = mod[0:256,:]
     mod_high = mod[256:,:]
+    spec_env = spectral_env(mod_low, mod_high)
     sig_recons, D_recons = recons_sig(mod_low,D_low, 
-                                            mod_high, l_sig, 100)
+                                            spec_env, l_sig, 100)
     librosa.output.write_wav(output_dir,sig_recons, sr)
     snr = snr2(y, sig_recons, sr)
     return sig_recons, D_recons, snr
