@@ -5,14 +5,15 @@ Created on Mon Feb  4 09:14:36 2019
 @author: Geoffroy Leconte
 """
 
-import tensorflow as tf
-import fonctions_utilitaires as f_uti
+#import tensorflow as tf
+#import fonctions_utilitaires as f_uti
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import soundfile as sf
 import librosa
 import pandas as pd
+import h5py
     
 # train_data:
 audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
@@ -57,10 +58,22 @@ for root, dirname, filenames in os.walk(audio_dir):
 train_data = train_data[1:,:] # on enlève la première ligne qui était
 # seulement pour pouvoir ajouter facilement des éléments dans le tableau np.
 train_obj = train_obj[1:,:]
-td = pd.DataFrame(train_data)  
-tobj = pd.DataFrame(train_obj) 
-td.to_csv('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/train_data.csv')
-tobj.to_csv('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/train_obj.csv')      
+
+store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
+
+h5f_1 = h5py.File(os.path.join(store_path,'data.h5'), 'w')
+h5f_1.create_dataset('data', data=train_data)
+h5f_1.close()
+
+h5f_2 = h5py.File(os.path.join(store_path, 'obj.h5'), 'w')
+h5f_2.create_dataset('obj', data=train_obj)
+h5f_2.close()
+
+
+#td = pd.DataFrame(train_data)  
+#tobj = pd.DataFrame(train_obj) 
+#td.to_csv('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/train_data.csv')
+#tobj.to_csv('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/train_obj.csv')      
             
             
             
