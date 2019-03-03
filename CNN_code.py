@@ -59,7 +59,7 @@ with graph1.as_default():
     #conv2_flat = tf.reshape(pool2, [-1, 32**2 * 64])
     # on somme
     #logits = tf.layers.dense(inputs=conv2_flat, units=256**2)
-    
+    print(conv2.shape)
     # sommation manuelle
     biais = tf.Variable(tf.zeros([1,256**2]))
     logits_im = tf.reduce_sum(conv2, 3)/64 
@@ -84,7 +84,7 @@ summaries_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/summarie
 with graph1.as_default():
     # loss:
     print(np.shape(logits))
-    loss = tf.losses.absolute_difference(labels=y_data, predictions=logits)
+    loss = tf.losses.mean_squared_error(labels=y_data, predictions=logits)
     
     # otimiser: Adam
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
@@ -117,7 +117,7 @@ with tf.Session(graph=graph1) as sess:
         print('loss abs diff = ', loss_a)
             
     # phase de test:
-    #pred_obj = sess.run(logits, feed_dict={x_data:test_data})
+    pred_obj = sess.run(logits, feed_dict={x_data:test_data})
     
             
     

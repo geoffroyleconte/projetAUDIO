@@ -71,20 +71,26 @@ def spectral_env(mod_low, mod_high):#même taille
         spec_env = np.append(spec_env, [high_mean/low_mean])
     return spec_env
 
-def recons_sig(mod_low, D_low, spec_env, l_sig, iterations):
+def recons_sig(mod_low, D_low, spec_env, l_sig, iterations, cut):
     # l_sig et iter pour griffin and lim
-    mod_high_recons = (mod_low.T * spec_env).T
+    ##mod_high_recons = ((mod_low.T * spec_env).T)[0:(512-cut),:]
+    mod_high_recons = ((mod_low.T * spec_env).T)[0:256,:]
     # shape (255,141)
     # module total reconstruit
     mod_recons = np.concatenate((mod_low, mod_high_recons), axis=0)
     #griffin and lim (seulement partie haute fréquence):
+    print(np.shape(mod_high_recons))
     x_recons_high = reconstruct_sig_griffin_lim(mod_high_recons,
                                                 l_sig, iterations, 510, 256)
-    D_recons_high = librosa.stft(x_recons_high, 
-                                 n_fft=510, hop_length=256) # spectrogramme
+                                                ##l_sig, iterations, 2*(512-cut-1), 256)
+    D_recons_high = librosa.stft(x_recons_high,
+                                 n_fft=510, hop_length=256)
+                                 ##n_fft=2*(512-cut-1), hop_length=256) # spectrogramme
     D_recons = np.zeros((512, round(l_sig/256)), dtype=np.complex_)
-    D_recons[:256,:] = D_low
-    D_recons[256:, :] = D_recons_high
+    D_recons[:cut,:] = D_low
+    #print(np.shape(D_recons_high))
+    ##D_recons[cut:512, :] = D_recons_high
+    D_recons[cut:512, :] = D_recons_high[0:512-cut]
     # signal reconstruit final (avec la phase):
     x_recons = librosa.istft(D_recons, length=l_sig, hop_length=256)
     return x_recons, D_recons
@@ -101,7 +107,7 @@ def snr2(original_sig, recons_sig, sr):
     P_original = np.sum(np.square(original_sig))/sr
     return P_original/P_noise
 
-def pipeline_sig_recons(input_sig_dir, output_dir):
+def pipeline_sig_recons(input_sig_dir, output_dir, cut):
     y, sr = load_signal(input_sig_dir)
     l_sig = len(y)
     D = librosa.stft(y, n_fft=1024)
@@ -112,7 +118,7 @@ def pipeline_sig_recons(input_sig_dir, output_dir):
     mod_high = mod[256:,:]
     spec_env = spectral_env(mod_low, mod_high)
     sig_recons, D_recons = recons_sig(mod_low,D_low, 
-                                            spec_env, l_sig, 100)
+                                            spec_env, l_sig, 100, cut)
     librosa.output.write_wav(output_dir,sig_recons, sr)
     snr = snr2(y, sig_recons, sr)
     return sig_recons, D_recons, snr

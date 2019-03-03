@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import *
 import fonctions_utilitaires as f_uti
+import os
 
 #import audio_utilities
 # open file, stft
@@ -72,7 +73,7 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
                          , sig_low, sr1)
 #signal avec reconstruction hautes fréquences, 100 iter griffin and lim:
 spec_env = f_uti.spectral_env(mod_low, mod_high)
-sig_recons, D_recons = f_uti.recons_sig(mod_low,D_low, spec_env, l_sig, 100)
+sig_recons, D_recons = f_uti.recons_sig(mod_low,D_low, spec_env, l_sig, 100, 256)
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/sig_avec_recons_hf.wav'
                          , sig_recons, sr1)
 
@@ -80,4 +81,56 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 snr1 = f_uti.snr2(y1, sig_recons, sr1)
 # créer une pipeline globale et tester sur d'autres données.
 
+# test pour sep bf/hf:
+audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech/dev-clean/84/121123/'
+sound_f = os.path.join(audio_dir, '84-121123-0000.flac')
+import soundfile as sf
+y_t, sr_t = sf.read(sound_f)
+l_sig = len(y_t)
+D_t = librosa.stft(y_t, n_fft=1024)
+D_t_low = np.abs(D_t[0:500, :])
+D_t_high = np.abs(D_t[500:512, :])
+s_low = librosa.istft(D_t_low, length=l_sig, hop_length=256)
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_low.wav'
+                         , s_low, sr_t)
+s_full = librosa.istft(D_t, length=l_sig, hop_length=256)
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_full.wav'
+                         , s_full, sr_t)
 
+# 300 faisable
+cut=500
+print(cut)
+# test reconstruction méthode classique:
+D_t_highpadded = np.zeros((501,len(D_t_high[0,:])))
+D_t_highpadded[0:512-cut,:] = D_t_high
+sp_env_t = f_uti.spectral_env(np.abs(D_t_low), np.abs(D_t_highpadded))
+s_rec_t, D_rec_t = f_uti.recons_sig(np.abs(D_t_low),D_t_low, 
+                                    sp_env_t, l_sig, 150, cut)
+
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_rec_sbr.wav'
+                         , s_rec_t, sr_t)
+
+
+
+
+audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech/dev-clean/84/121123/'
+sound_f = os.path.join(audio_dir, '84-121123-0000.flac')
+import soundfile as sf
+y_t, sr_t = sf.read(sound_f)
+l_sig = len(y_t)
+D_t = librosa.stft(y_t, n_fft=1024)
+D_t_low256 = np.abs(D_t[0:256, :])
+D_t_high256 = np.abs(D_t[256:512, :])
+s_low256 = librosa.istft(D_t_low256, length=l_sig, hop_length=256)
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_low256.wav'
+                         , s_low256, sr_t)
+# 256 pour comparer
+cut=256
+print(cut)
+# test reconstruction méthode classique:
+sp_env_t256 = f_uti.spectral_env(np.abs(D_t_low256), np.abs(D_t_high256))
+s_rec_t256, D_rec_t256 = f_uti.recons_sig(np.abs(D_t_low256),D_t_low256, 
+                                    sp_env_t256, l_sig, 150, cut)
+
+librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_rec_sbr256.wav'
+                         , s_rec_t256, sr_t)
