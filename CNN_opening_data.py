@@ -22,10 +22,16 @@ l_audio_dir = []
 l_audio_files = []
 l_audio_sr = []
 l_stft = []
+
+ # nombre de lignes du spectrogramme basses fréquences.
+cut = 64
+
 # données d'entrainement: (partie basse et partie haute)
-train_data = np.zeros((1,256**2))
-train_obj = np.zeros((1,256**2))
+train_data = np.zeros((1,256*cut))
+train_obj = np.zeros((1,256*(512-cut)))
 c = 0
+
+
 # ouverture
 for root, dirname, filenames in os.walk(audio_dir):
     for filename1 in filenames:
@@ -43,17 +49,34 @@ for root, dirname, filenames in os.walk(audio_dir):
             Di = librosa.stft(yi, n_fft=1024)
             m,n = np.shape(Di)
             # amplitude bf
-            mag_low = np.abs(Di[0:256, :])
+            mag_low = np.abs(Di[0:cut, :])
             # amplitude hf, on chosiit de ne pas s'occuper de la dernière ligne
-            mag_high = np.abs(Di[256:512,:])
+            mag_high = np.abs(Di[cut:512,:])
             # découpage des signaux (256 trames)
-            for i in range(0, n-256, 256):
-                mag_lowi = mag_low[:, i:i+256]
+            
+            #### on découpe en tranches de taille 256, on rallonge si signal 
+            # trop court
+            
+            i=0
+            while i<n:
+                if n-i<256:
+                    mag_lowi = np.zeros((cut,256))
+                    mag_lowi[0:cut,0:(n-i)] = mag_low[0:cut,i:n]
+                    mag_highi = np.zeros((512-cut,256))
+                    mag_highi[0:(512-cut),0:(n-i)] = mag_high[0:(512-cut),i:n]
+                else:
+                    mag_lowi = mag_low[:, i:i+256]
+                    mag_highi = mag_high[:, i:i+256]
                 train_data = np.append(train_data, np.array([mag_lowi.flatten()]),
                                        axis=0)
-                mag_highi = mag_high[:, i:i+256]
                 train_obj = np.append(train_obj, np.array([mag_highi.flatten()]),
                                       axis=0)
+                i+=256
+            #print('mag_low',np.shape(mag_low), ' mag_high', np.shape(mag_high))
+            #print('mag_lowi', np.shape(mag_lowi), ' mag_highi', np.shape(mag_highi))
+            if c%10==0:
+                print('iter', c)
+            
 # données d'entrainement dans un fichier csv pour les ouvrir rapidement  
 train_data = train_data[1:,:] # on enlève la première ligne qui était
 # seulement pour pouvoir ajouter facilement des éléments dans le tableau np.

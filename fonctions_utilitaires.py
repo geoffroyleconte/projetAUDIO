@@ -101,10 +101,10 @@ def reconstruction_snr(original_sig, recons_sig, sr):
     P_original = signal.periodogram(original_sig, sr)
     return np.mean(P_original)/np.mean(P_noise)
 
-def snr2(original_sig, recons_sig, sr):
+def snr2(original_sig, recons_sig):
     noise = original_sig-recons_sig
-    P_noise = np.sum(np.square(noise))/sr
-    P_original = np.sum(np.square(original_sig))/sr
+    P_noise = np.sum(np.square(noise))
+    P_original = np.sum(np.square(original_sig))
     return P_original/P_noise
 
 def pipeline_sig_recons(input_sig_dir, output_dir, cut):
