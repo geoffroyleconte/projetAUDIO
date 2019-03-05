@@ -78,7 +78,7 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
                          , sig_recons, sr1)
 
 
-snr1 = f_uti.snr2(y1, sig_recons, sr1)
+snr1 = f_uti.snr2(y1, sig_recons)
 # créer une pipeline globale et tester sur d'autres données.
 
 # test pour sep bf/hf:
@@ -88,25 +88,19 @@ import soundfile as sf
 y_t, sr_t = sf.read(sound_f)
 l_sig = len(y_t)
 D_t = librosa.stft(y_t, n_fft=1024)
-D_t_low = np.abs(D_t[0:500, :])
-D_t_high = np.abs(D_t[500:512, :])
-s_low = librosa.istft(D_t_low, length=l_sig, hop_length=256)
+
+
+
+cut=64
+
+
+s_low,s_full, s_rec_t = f_uti.pipeline_sig_recons(D_t, l_sig, sr_t, cut)
+
+## writing:
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_low.wav'
                          , s_low, sr_t)
-s_full = librosa.istft(D_t, length=l_sig, hop_length=256)
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_full.wav'
                          , s_full, sr_t)
-
-# 300 faisable
-cut=500
-print(cut)
-# test reconstruction méthode classique:
-D_t_highpadded = np.zeros((501,len(D_t_high[0,:])))
-D_t_highpadded[0:512-cut,:] = D_t_high
-sp_env_t = f_uti.spectral_env(np.abs(D_t_low), np.abs(D_t_highpadded))
-s_rec_t, D_rec_t = f_uti.recons_sig(np.abs(D_t_low),D_t_low, 
-                                    sp_env_t, l_sig, 150, cut)
-
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_rec_sbr.wav'
                          , s_rec_t, sr_t)
 

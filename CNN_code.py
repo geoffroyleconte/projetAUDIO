@@ -17,8 +17,8 @@ import fonctions_utilitaires as f_uti
 import librosa
 # on importe une partie du jeu de données avec h5py
 
-path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
-#path = '/home/felixgontier/data/PROJET AUDIO/'
+#path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
+path = '/home/felixgontier/data/PROJET AUDIO/'
 data_path = os.path.join(path,'quelques sons/')
 
 
@@ -73,8 +73,8 @@ with graph1.as_default():
     
 # hyperparamètres:
 LEARNING_RATE = 0.05
-n_epochs = 2
-batch_size = 8
+n_epochs = 3
+batch_size = 32
 n_batches = int(np.ceil(m / batch_size))
 
 def fetch_batch(epoch, batch_index, batch_size):
@@ -130,7 +130,8 @@ with tf.Session(graph=graph1) as sess:
             
     
 ## OOM when allocating tensor with shape[4194304,65536]  
-# tests d'écoute    
+# tests d'écoute  
+sr=16000
     
 spec_high = np.reshape(pred_obj[3,:], (nb_hf,256))
 spec_low = np.reshape(test_data[3,:], (nb_bf,256))
@@ -147,7 +148,7 @@ spec = np.zeros((513,256))
 spec[0:nb_bf,:] = spec_low                         
 spec[nb_bf:512,:] = spec_high
 sig = librosa.istft(spec)
-sr=16000
+
 sig_gl = f_uti.reconstruct_sig_griffin_lim(spec,len(sig), 100, 1024, 256)
 # son reconstruit
 path_recons = os.path.join(path_out, 'test_sound1.wav')
@@ -162,3 +163,4 @@ path_gt = os.path.join(path_out, 'test_sound_gt1.wav')
 librosa.output.write_wav(path_gt, sig_gl_gt, sr)
 
 snr1 = f_uti.snr2(sig_gl_gt, sig_gl)
+# >>> snr1 = 0.7263989 avec c=30

@@ -16,7 +16,8 @@ import pandas as pd
 import h5py
     
 # train_data:
-audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
+#audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
+audio_dir = '/home/felixgontier/data/PROJET AUDIO/LibriSpeech'
 
 l_audio_dir = []
 l_audio_files = []
@@ -38,7 +39,7 @@ for root, dirname, filenames in os.walk(audio_dir):
         audio_file = os.path.join(root, filename1)
         # enlever la condition sur le compteur c pour faire sur tous les
         # fichiers audio
-        if audio_file.endswith('.flac') and c<30:
+        if audio_file.endswith('.flac') and c<500:
             c+=1
             l_audio_dir.append(audio_file)
             yi, sri = sf.read(audio_file)
@@ -82,7 +83,8 @@ train_data = train_data[1:,:] # on enlève la première ligne qui était
 # seulement pour pouvoir ajouter facilement des éléments dans le tableau np.
 train_obj = train_obj[1:,:]
 
-store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
+#store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
+store_path = '/home/felixgontier/data/PROJET AUDIO/quelques sons/'
 
 h5f_1 = h5py.File(os.path.join(store_path,'data.h5'), 'w')
 h5f_1.create_dataset('data', data=train_data)
