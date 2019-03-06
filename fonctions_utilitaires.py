@@ -61,51 +61,56 @@ def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations,
         #print('Reconstruction iteration: {}/{} RMSE: {} '.format(iterations - n, iterations, diff))
     return x_reconstruct
 
-def spectral_env(mod_low, mod_high):#même taille
-    #enveloppe spectrale:  rapport ratio intensité high/low pour chaque bande
-    n = len(mod_low)
+def spectral_env(D):#même taille
+    #enveloppe spectrale:  rapport ratio intensité high/low pour chaque trame
     spec_env = np.array([])
+    m,n = np.shape(D)
+    D = D[0:(m-1),:]
+    mod_low = np.abs(D[:(m-1)//2,:])
+    mod_high = np.abs(D[(m-1)//2:,:])
     for i in range(n):
-        low_mean = np.mean(mod_low[i])
-        high_mean = np.mean(mod_high[i])
-        spec_env = np.append(spec_env, [high_mean/low_mean])
+        low_mean_trame = np.sum(mod_low[:,i])
+        high_mean_trame = np.sum(mod_high[:,i])
+        if low_mean_trame == 0:
+            low_mean_trame = 1e-4
+        spec_env = np.append(spec_env, [high_mean_trame/low_mean_trame])
     return spec_env
 
-def recons_sig(mod_low, D_low, spec_env, l_sig, iterations, cut):
+
+def recons_sig(D_low, spec_env, l_sig, iterations):
     # l_sig et iter pour griffin and lim
-    ##mod_high_recons = ((mod_low.T * spec_env).T)[0:(512-cut),:]
-    mod_high_recons = (mod_low.T * spec_env).T
-    # shape (255,141)
-    # module total reconstruit
-    mod_recons = np.concatenate((mod_low, mod_high_recons), axis=0)
+    mod_low = np.abs(D_low)
+    mod_high_recons = mod_low 
+    
+    # colonnes de mod_low multipliées par spec env.
+    for i in range(np.shape(mod_high_recons)[1]):
+        mod_high_recons[:,i] = mod_high_recons[:,i] * spec_env[i]
+    print(np.shape(mod_high_recons))
     #griffin and lim (seulement partie haute fréquence):
     x_recons_high = reconstruct_sig_griffin_lim(mod_high_recons,
-                                                l_sig, iterations, 2*(512-cut-1), 256)
-                                                ##l_sig, iterations, 510, 256)
+                                                l_sig, iterations, 510, 256)
     D_recons_high = librosa.stft(x_recons_high,
-                                 n_fft=2*(512-cut-1), hop_length=256)
-                                 ##n_fft=510, hop_length=256) # spectrogramme
-    D_recons = np.zeros((512, round(l_sig/256)), dtype=np.complex_)
-    D_recons[:cut,:] = D_low
+                                 n_fft=510, hop_length=256)
+    D_recons = np.zeros((512, np.shape(D_low)[1]), dtype=np.complex_)
+    D_recons[:256,:] = D_low
     #print(np.shape(D_recons_high))
     ##D_recons[cut:512, :] = D_recons_high
-    D_recons[cut:512, :] = D_recons_high[0:512-cut]
+    D_recons[256:, :] = D_recons_high
     # signal reconstruit final (avec la phase):
     x_recons = librosa.istft(D_recons, length=l_sig, hop_length=256)
     return x_recons, D_recons
 
-def reconstruction_snr(original_sig, recons_sig, sr):
-    noise = original_sig-recons_sig
-    P_noise = signal.periodogram(noise, sr)
-    P_original = signal.periodogram(original_sig, sr)
-    return np.mean(P_original)/np.mean(P_noise)
 
 def snr2(original_sig, recons_sig):
     noise = original_sig-recons_sig
     P_noise = np.sum(np.square(noise))
     P_original = np.sum(np.square(original_sig))
-    return P_original/P_noise
+    return 20*log10(P_original/P_noise)
 
+
+
+
+### non utilisé pour l'instant ###
 def pipeline_sig_recons(D, l_sig, sr, cut):
     D_low = D[0:cut, :]
     D_high = D[cut:512, :]

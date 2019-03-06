@@ -17,8 +17,8 @@ import fonctions_utilitaires as f_uti
 import librosa
 # on importe une partie du jeu de données avec h5py
 
-#path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
-path = '/home/felixgontier/data/PROJET AUDIO/'
+path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
+#path = '/home/felixgontier/data/PROJET AUDIO/'
 data_path = os.path.join(path,'quelques sons/')
 
 
@@ -46,14 +46,13 @@ nb_hf = 512-64
 graph1 = tf.Graph()
 with graph1.as_default():
     # entrées et sorties avec des placeholders
-    x_data = tf.placeholder(tf.float32, shape=(None, 256*nb_bf))
-    y_data = tf.placeholder(tf.float32, shape=(None, 256*nb_hf))
-    x_im_data = tf.reshape(x_data, shape=(-1, nb_bf, 256, 1))
-    x_im_data_conc = tf.concat([x_im_data]*7, axis=1)
+    x_data = tf.placeholder(tf.float32, shape=(None, 256**2))
+    y_data = tf.placeholder(tf.float32, shape=(None, 256**2))
+    x_im_data = tf.reshape(x_data, shape=(-1, 256, 256, 1))
     # peut-être inutile:
-    y_im_data = tf.reshape(y_data, shape=(-1, nb_hf, 256, 1))
+    y_im_data = tf.reshape(y_data, shape=(-1, 256, 256, 1))
     # on teste une convolution 5*5 activation relu
-    conv1 = tf.layers.conv2d(inputs=x_im_data_conc, filters=64, kernel_size=[5,5],
+    conv1 = tf.layers.conv2d(inputs=x_im_data, filters=64, kernel_size=[5,5],
                             padding='same', activation=tf.nn.relu)
 
 
@@ -66,15 +65,15 @@ with graph1.as_default():
     #                                     stride=4, padding='same')
     print(conv2.shape)
     # sommation manuelle
-    biais = tf.Variable(tf.zeros([1,256*nb_hf]))
+    biais = tf.Variable(tf.zeros([1,256**2]))
     logits_im = tf.reduce_sum(conv2, 3)/64 
     print("im", logits_im.shape)
-    logits = tf.reshape(logits_im, [-1, 256*nb_hf]) + biais
+    logits = tf.reshape(logits_im, [-1, 256**2]) + biais
     
 # hyperparamètres:
 LEARNING_RATE = 0.05
-n_epochs = 3
-batch_size = 32
+n_epochs = 2
+batch_size = 8
 n_batches = int(np.ceil(m / batch_size))
 
 def fetch_batch(epoch, batch_index, batch_size):
@@ -133,10 +132,10 @@ with tf.Session(graph=graph1) as sess:
 # tests d'écoute  
 sr=16000
     
-spec_high = np.reshape(pred_obj[3,:], (nb_hf,256))
-spec_low = np.reshape(test_data[3,:], (nb_bf,256))
+spec_high = np.reshape(pred_obj[3,:], (256,256))
+spec_low = np.reshape(test_data[3,:], (256,256))
 spec = np.zeros((513,256))
-spec[0:nb_bf,:] = spec_low
+spec[0:256,:] = spec_low
 sig_low = librosa.istft(spec)
 sig_low_gl = f_uti.reconstruct_sig_griffin_lim(spec,len(sig_low), 100, 1024, 256)
 # son avec seulement les bf
@@ -145,8 +144,8 @@ path_bf = os.path.join(path_out, 'test_sound_low_f1.wav')
 librosa.output.write_wav(path_bf, sig_low_gl, sr)
                          
 spec = np.zeros((513,256))
-spec[0:nb_bf,:] = spec_low                         
-spec[nb_bf:512,:] = spec_high
+spec[0:256,:] = spec_low                         
+spec[256:512,:] = spec_high
 sig = librosa.istft(spec)
 
 sig_gl = f_uti.reconstruct_sig_griffin_lim(spec,len(sig), 100, 1024, 256)
@@ -154,10 +153,10 @@ sig_gl = f_uti.reconstruct_sig_griffin_lim(spec,len(sig), 100, 1024, 256)
 path_recons = os.path.join(path_out, 'test_sound1.wav')
 librosa.output.write_wav(path_recons, sig_gl, sr)
                          
-spec_high_gt = np.reshape(test_obj[3,:], (nb_hf,256))
+spec_high_gt = np.reshape(test_obj[3,:], (256,256))
 spec_gt = np.zeros((513,256))
-spec_gt[0:nb_bf,:] = spec_low 
-spec_gt[nb_bf:512,:] = spec_high_gt
+spec_gt[0:256,:] = spec_low 
+spec_gt[256:512,:] = spec_high_gt
 sig_gl_gt = f_uti.reconstruct_sig_griffin_lim(spec_gt,len(sig), 100, 1024, 256) 
 path_gt = os.path.join(path_out, 'test_sound_gt1.wav')                        
 librosa.output.write_wav(path_gt, sig_gl_gt, sr)

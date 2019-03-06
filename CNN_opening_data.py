@@ -16,8 +16,8 @@ import pandas as pd
 import h5py
     
 # train_data:
-#audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
-audio_dir = '/home/felixgontier/data/PROJET AUDIO/LibriSpeech'
+audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
+#audio_dir = '/home/felixgontier/data/PROJET AUDIO/LibriSpeech'
 
 l_audio_dir = []
 l_audio_files = []
@@ -28,8 +28,8 @@ l_stft = []
 cut = 64
 
 # données d'entrainement: (partie basse et partie haute)
-train_data = np.zeros((1,256*cut))
-train_obj = np.zeros((1,256*(512-cut)))
+train_data = np.zeros((1,256**2))
+train_obj = np.zeros((1,256**2))
 c = 0
 
 
@@ -39,7 +39,7 @@ for root, dirname, filenames in os.walk(audio_dir):
         audio_file = os.path.join(root, filename1)
         # enlever la condition sur le compteur c pour faire sur tous les
         # fichiers audio
-        if audio_file.endswith('.flac') and c<500:
+        if audio_file.endswith('.flac') and c<30:
             c+=1
             l_audio_dir.append(audio_file)
             yi, sri = sf.read(audio_file)
@@ -50,9 +50,9 @@ for root, dirname, filenames in os.walk(audio_dir):
             Di = librosa.stft(yi, n_fft=1024)
             m,n = np.shape(Di)
             # amplitude bf
-            mag_low = np.abs(Di[0:cut, :])
+            mag_low = np.abs(Di[0:256, :])
             # amplitude hf, on chosiit de ne pas s'occuper de la dernière ligne
-            mag_high = np.abs(Di[cut:512,:])
+            mag_high = np.abs(Di[256:512,:])
             # découpage des signaux (256 trames)
             
             #### on découpe en tranches de taille 256, on rallonge si signal 
@@ -61,10 +61,10 @@ for root, dirname, filenames in os.walk(audio_dir):
             i=0
             while i<n:
                 if n-i<256:
-                    mag_lowi = np.zeros((cut,256))
-                    mag_lowi[0:cut,0:(n-i)] = mag_low[0:cut,i:n]
-                    mag_highi = np.zeros((512-cut,256))
-                    mag_highi[0:(512-cut),0:(n-i)] = mag_high[0:(512-cut),i:n]
+                    mag_lowi = np.zeros((256,256))
+                    mag_lowi[0:256,0:(n-i)] = mag_low[0:256,i:n]
+                    mag_highi = np.zeros((256,256))
+                    mag_highi[0:256,0:(n-i)] = mag_high[0:256,i:n]
                 else:
                     mag_lowi = mag_low[:, i:i+256]
                     mag_highi = mag_high[:, i:i+256]
@@ -83,8 +83,8 @@ train_data = train_data[1:,:] # on enlève la première ligne qui était
 # seulement pour pouvoir ajouter facilement des éléments dans le tableau np.
 train_obj = train_obj[1:,:]
 
-#store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
-store_path = '/home/felixgontier/data/PROJET AUDIO/quelques sons/'
+store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
+#store_path = '/home/felixgontier/data/PROJET AUDIO/quelques sons/'
 
 h5f_1 = h5py.File(os.path.join(store_path,'data.h5'), 'w')
 h5f_1.create_dataset('data', data=train_data)
