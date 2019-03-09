@@ -1,17 +1,25 @@
-Télécharger des fichiers audio .wav pour récupérer leurs données.
-Nous avons utilisé Librispeech mais n'importe quels fichier .wav peuvent convenir.
+##### UTILISATION CODE SBR #####
 
-Ouvrir CNN_opening_data_train.py.
-ligne 20: Changer la direction audio_dir (direction des fichiers audio).
-ligne 34: changer le nombre max d'itérations (c<34) si on veut utiliser plus ou moins
-de fichiers audio.
-lignes 62/63: changer la direction où les fichiers audio vont être écrits en format h5.
-Compiler CNN_opening_data_train.py. Nous avons maintenant 2 fichiers h5 pour l'entrainement, 
-correspondant aux parties basses et hautes des spectrogrammes (mis en ligne pour faciliter le
-traitement). Les spectrogrammes ont une taille 256*256 pour faciliter leur exploitation.
-(Plusieurs spectrogrammes pour un fichier audio).
+- ouvrir decodage_python_2.py
+- audio_dir: direction des sons utilisés (flac pour nous avec librispeech)
+- les sons de Librispeech utilisés sont à 16kHz, et nous rééchantillonnons à 5 kHz.
+Il est possible de changer cette fréquence de rééchantillonnage (cf L29-L34)
+- changer la direction d'écriture des signaux rééchantillonnés, basses fréquences,
+et reconstruits par SBR.
+- les fonctions utilitaires (Griffin & Lim, enveloppe spectral, et reconstruction SBR)
+sont disponibles dans le fichier fonctions_utilitaires.py
 
-Ouvrir CNN_code.py
-lignes 15/16: Modifier l'adresse des fichiers h5 créés précédemment pour pouvoir les charger.
-Compiler.
+
+#### UTILISATION CNN #####
+
+- ouvrir CNN_opening_data.py
+- changer la direction des fichiers audio utilisés (Librispeech pour nous)
+- modifier la valeur de c pour choisir le nombre de fichiers audio traités,
+ou l'enlever dans la boucle while pour traiter tous les fichiers.
+- changer la direction d'écriture des fichiers h5 contenant les spectrogrammes BF et HF,
+écrits en ligne.
+- ouvrir CNN_code
+- changer path par la direction des fichiers h5 obtenus
+- éventuellement changer les directions d'écriture des fichiers h5 contenant les HF prédites,
+et des fichiers audio écrits pour écouter si la reconstruction est satisfaisante.
 

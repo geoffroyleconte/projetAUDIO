@@ -17,8 +17,8 @@ import fonctions_utilitaires as f_uti
 import librosa
 # on importe une partie du jeu de données avec h5py
 
-#path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
-path = '/home/felixgontier/data/PROJET AUDIO/'
+path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
+#path = '/home/felixgontier/data/PROJET AUDIO/'
 data_path = os.path.join(path,'quelques sons/')
 
 
@@ -30,7 +30,6 @@ h5f_2 = h5py.File(os.path.join(data_path,'obj.h5'),'r')
 train_obj = h5f_2['obj'][:]
 h5f_2.close()
 
-
 train_data, test_data, train_obj, test_obj = train_test_split(train_data,
                                                               train_obj, 
                                                               test_size=0.33)
@@ -39,8 +38,9 @@ train_data, test_data, train_obj, test_obj = train_test_split(train_data,
 
 m,n = np.shape(train_data)
 
-
-
+# nombre de lignes pour les bf/hf 
+nb_bf = 64
+nb_hf = 512-64
 
 # architecture
 graph1 = tf.Graph()
@@ -49,26 +49,32 @@ with graph1.as_default():
     x_data = tf.placeholder(tf.float32, shape=(None, 256**2))
     y_data = tf.placeholder(tf.float32, shape=(None, 256**2))
     x_im_data = tf.reshape(x_data, shape=(-1, 256, 256, 1))
+    # peut-être inutile:
     y_im_data = tf.reshape(y_data, shape=(-1, 256, 256, 1))
-    
+    # on teste une convolution 5*5 activation relu
     conv1 = tf.layers.conv2d(inputs=x_im_data, filters=64, kernel_size=[5,5],
                             padding='same', activation=tf.nn.relu)
-    conv2 = tf.layers.conv2d(inputs=conv1, filters=32, kernel_size=[5,5],
+
+
+    #pool1 = tf.contrib.layers.max_pool2d(inputs=conv1, kernel_size=[2,2],
+    #                                     stride=2, padding='same')
+    # 2e couche
+    conv2 = tf.layers.conv2d(inputs=conv1, filters=64, kernel_size=[5,5],
                              padding='same', activation=tf.nn.relu)
-    conv3 = tf.layers.conv2d(inputs=conv2, filters=1, kernel_size=[5,5],
-                             padding='same', activation=tf.nn.relu) 
-    logits = tf.reshape(conv3, [-1, 256**2]) 
+    #pool2 = tf.contrib.layers.max_pool2d(inputs=conv2, kernel_size=[2,2],
+    #                                     stride=4, padding='same')
+    print(conv2.shape)
+    # sommation manuelle
+    biais = tf.Variable(tf.zeros([1,256**2]))
+    logits_im = tf.reduce_sum(conv2, 3)/64 
+    print("im", logits_im.shape)
+    logits = tf.reshape(logits_im, [-1, 256**2]) + biais
     
 # hyperparamètres:
 LEARNING_RATE = 0.05
-n_epochs = 3
-batch_size = 128
-# top  (mémoire) + augmenter autant qu'on peut batch_size
-
+n_epochs = 2
+batch_size = 8
 n_batches = int(np.ceil(m / batch_size))
-
-m_t, n_t = np.shape(test_data)
-n_batches_test = int(np.ceil(m_t / batch_size))
 
 def fetch_batch(epoch, batch_index, batch_size):
     rnd.seed(epoch * n_batches + batch_index)
@@ -82,56 +88,49 @@ summaries_dir = os.path.join(path, 'summaries/')
 
 # opérations du modèle:
 with graph1.as_default():
+    # loss:
+    print(np.shape(logits))
     loss = tf.losses.mean_squared_error(labels=y_data, predictions=logits)
+    # otimiser: Adam
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+    # opération d'entrainement:
     train_op = optimizer.minimize(loss)
     
+    
+    #init_op:
     init = tf.global_variables_initializer()
  
-    # tensorboard (localhost 6006 ne fonctionne pas sur le pc)
     tf.summary.scalar('loss',loss)
     merged = tf.summary.merge_all()
     
     
 # entrainement et test:
 with tf.Session(graph=graph1) as sess: 
+    # run initialisation:
     sess.run(init)
-    
     train_writer = tf.summary.FileWriter(summaries_dir + '/train', sess.graph)
-    
-    # entrainement:
     for epoch in range(n_epochs):
+        
+        # train op
         for batch_index in range(n_batches):
             X_batch, Y_batch = fetch_batch(epoch, batch_index, batch_size)
-            loss_a, summary, _ = sess.run([loss, merged,train_op], 
-                                          feed_dict={x_data:X_batch, y_data:Y_batch })
-            
+            sess.run(train_op, feed_dict={x_data:X_batch, y_data:Y_batch })
+        # affichage fonction de perte
+            loss_a, summary = sess.run([loss, merged],
+                                       feed_dict={x_data:X_batch, y_data: Y_batch})
             train_writer.add_summary(summary, epoch * n_batches + batch_index)
-            
             print('epoch',epoch+1,'/', n_epochs, '    batch', 
                   batch_index+1, '/', n_batches,
                   '    loss abs diff = ', loss_a)
             
     # phase de test:
-    # batches pour le test.
-    for batch_index in range(n_batches_test):
-        X_batch, Y_batch = fetch_batch(n_epochs, batch_index, batch_size)
-        pred_obj, loss_t = sess.run([logits, loss],
-                                    feed_dict={x_data:X_batch, y_data:Y_batch})
-        
-        print('test', 'batch', batch_index+1, '/', n_batches_test,
-              '    loss abs diff = ', loss_t)
-                        
+    pred_obj = sess.run(logits, feed_dict={x_data:test_data})
     
-# données prédites dans un fichier h5 pour pouvoir les comparer avec train_obj
-h5f_3 = h5py.File(os.path.join(data_path, 'pred_obj.h5'), 'w')
-h5f_3.create_dataset('pred_obj', data=pred_obj)
-h5f_3.close()            
+            
     
-
-# tests d'écoute de la reconstitution (on utilise l'algorithme de Griffin & Lim)
-# pour retrouver la phase. 
-sr=5000
+## OOM when allocating tensor with shape[4194304,65536]  
+# tests d'écoute  
+sr=16000
     
 spec_high = np.reshape(pred_obj[3,:], (256,256))
 spec_low = np.reshape(test_data[3,:], (256,256))

@@ -16,18 +16,21 @@ import pandas as pd
 import h5py
     
 # train_data:
-#audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
-audio_dir = '/home/felixgontier/data/PROJET AUDIO/LibriSpeech'
+audio_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/LibriSpeech'
+#audio_dir = '/home/felixgontier/data/PROJET AUDIO/LibriSpeech'
 
+l_audio_dir = []
+l_audio_files = []
+l_audio_sr = []
+l_stft = []
 
-
-l_audio_sr = [] # regarder si les fréquences d'échantillonnage sont identiques
-
+ # nombre de lignes du spectrogramme basses fréquences.
+cut = 64
 
 # données d'entrainement: (partie basse et partie haute)
-train_data = [[0]*(256**2)]
-train_obj = [[0]*(256**2)]
-c = 0 # compteur pour le nombre max de fichiers à traiter.
+train_data = np.zeros((1,256**2))
+train_obj = np.zeros((1,256**2))
+c = 0
 
 
 # ouverture
@@ -36,11 +39,11 @@ for root, dirname, filenames in os.walk(audio_dir):
         audio_file = os.path.join(root, filename1)
         # enlever la condition sur le compteur c pour faire sur tous les
         # fichiers audio
-        if audio_file.endswith('.flac') and c<2000:
+        if audio_file.endswith('.flac') and c<30:
             c+=1
-            y_f, sr_f = sf.read(audio_file)
-            sri = 5000
-            yi = librosa.resample(y_f, sr_f, sri)
+            l_audio_dir.append(audio_file)
+            yi, sri = sf.read(audio_file)
+            #l_audio_files.append(yi)
             l_audio_sr.append(sri)
             # stft
             # regarder pour l'overlap 1/4
@@ -65,19 +68,23 @@ for root, dirname, filenames in os.walk(audio_dir):
                 else:
                     mag_lowi = mag_low[:, i:i+256]
                     mag_highi = mag_high[:, i:i+256]
-                train_data.append( np.array(mag_lowi.flatten()))
-                train_obj.append(np.array(mag_highi.flatten()))
+                train_data = np.append(train_data, np.array([mag_lowi.flatten()]),
+                                       axis=0)
+                train_obj = np.append(train_obj, np.array([mag_highi.flatten()]),
+                                      axis=0)
                 i+=256
+            #print('mag_low',np.shape(mag_low), ' mag_high', np.shape(mag_high))
+            #print('mag_lowi', np.shape(mag_lowi), ' mag_highi', np.shape(mag_highi))
             if c%10==0:
                 print('iter', c)
             
-# données d'entrainement dans un fichier h5 pour les ouvrir rapidement  
-train_data = train_data[1:][:] # on enlève la première ligne qui était
+# données d'entrainement dans un fichier csv pour les ouvrir rapidement  
+train_data = train_data[1:,:] # on enlève la première ligne qui était
 # seulement pour pouvoir ajouter facilement des éléments dans le tableau np.
-train_obj = train_obj[1:][:]
+train_obj = train_obj[1:,:]
 
-#store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
-store_path = '/home/felixgontier/data/PROJET AUDIO/quelques sons/'
+store_path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/'
+#store_path = '/home/felixgontier/data/PROJET AUDIO/quelques sons/'
 
 h5f_1 = h5py.File(os.path.join(store_path,'data.h5'), 'w')
 h5f_1.create_dataset('data', data=train_data)
@@ -87,7 +94,11 @@ h5f_2 = h5py.File(os.path.join(store_path, 'obj.h5'), 'w')
 h5f_2.create_dataset('obj', data=train_obj)
 h5f_2.close()
 
-      
+
+#td = pd.DataFrame(train_data)  
+#tobj = pd.DataFrame(train_obj) 
+#td.to_csv('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/train_data.csv')
+#tobj.to_csv('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/train_obj.csv')      
             
             
             
