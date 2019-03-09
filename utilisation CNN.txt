@@ -1,4 +1,4 @@
-##### UTILISATION CODE SBR #####
+###### UTILISATION CODE SBR ######
 
 - ouvrir decodage_python_2.py
 - audio_dir: direction des sons utilisés (flac pour nous avec librispeech)
@@ -10,7 +10,7 @@ et reconstruits par SBR.
 sont disponibles dans le fichier fonctions_utilitaires.py
 
 
-#### UTILISATION CNN #####
+##### UTILISATION CNN ######
 
 - ouvrir CNN_opening_data.py
 - changer la direction des fichiers audio utilisés (Librispeech pour nous)
