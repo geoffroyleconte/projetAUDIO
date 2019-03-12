@@ -24,7 +24,7 @@ def spectrogram(D):
     plt.tight_layout()
     return None
 
-def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations, n_fft, hop_length):
+def reconstruct_sig_griffin_lim(spectro, len_init_sig, iterations, n_fft, hop_length):
     """Reconstruct an audio signal from a magnitude spectrogram.
 
     Given a magnitude spectrogram as input, reconstruct
@@ -44,6 +44,8 @@ def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations,
     Returns:
         The reconstructed time domain signal as a 1-dim Numpy array.
     """
+    magnitude_spectrogram = np.abs(spectro)
+    phase_low = np.angle(spectro[0:256,:])
     len_samples = int(len_init_sig)
     # Initialize the reconstructed signal to noise.
     x_reconstruct = np.random.randn(len_samples)
@@ -52,17 +54,20 @@ def reconstruct_sig_griffin_lim(magnitude_spectrogram, len_init_sig, iterations,
         n -= 1
         reconstruction_spectrogram = librosa.stft(x_reconstruct, n_fft=n_fft, hop_length = hop_length)
         reconstruction_angle = np.angle(reconstruction_spectrogram)
+        reconstruction_angle[0:256,:] = phase_low
         # Discard magnitude part of the reconstruction and use the supplied magnitude spectrogram instead.
         proposal_spectrogram = magnitude_spectrogram*np.exp(1.0j*reconstruction_angle)
         prev_x = x_reconstruct
         x_reconstruct = librosa.istft(proposal_spectrogram, length=len_init_sig)
         diff = sqrt(sum((x_reconstruct - prev_x)**2)/x_reconstruct.size)
         #print('Reconstruction iteration: {}/{} RMSE: {} '.format(iterations - n, iterations, diff))
+    print('shape angle',np.shape(reconstruction_angle))
+    print('shape recons_spec',np.shape(reconstruction_spectrogram))
     return x_reconstruct
 
 def spectral_env(D):#même taille
     """Calcul de l'enveloppe spectrale"""
-    spec_env = np.array([])
+    spec_env = []
     m,n = np.shape(D)
     D = D[0:(m-1),:]
     mod_low = np.abs(D[:(m-1)//2,:])
@@ -72,8 +77,8 @@ def spectral_env(D):#même taille
         high_mean_trame = np.sum(mod_high[:,i])
         if low_mean_trame == 0:
             low_mean_trame = 1e-4
-        spec_env = np.append(spec_env, [high_mean_trame/low_mean_trame])
-    return spec_env
+        spec_env.append(high_mean_trame/low_mean_trame)
+    return np.array(spec_env)
 
 
 def recons_sig(D_low, spec_env, l_sig, iterations):
@@ -86,19 +91,16 @@ def recons_sig(D_low, spec_env, l_sig, iterations):
     for i in range(np.shape(mod_high_recons)[1]):
         mod_high_recons[:,i] = mod_high_recons[:,i] * spec_env[i]
         
-    #griffin and lim (seulement partie haute fréquence):
-    x_recons_high = reconstruct_sig_griffin_lim(mod_high_recons,
-                                                l_sig, iterations, 510, 256)
+    print(np.shape(mod_high_recons))
+    #griffin and lim (seulement partie haute fréquence)
+    ##### griffin & lim sur tout le signal et pas seulement hf
+    D_sig = np.zeros((513, np.shape(D_low)[1]), dtype=np.complex_)
+    D_sig[0:256, :] = D_low
+    D_sig[256:512,:] = mod_high_recons
+    x_recons = reconstruct_sig_griffin_lim(D_sig,
+                                                l_sig, iterations, 1024, 256)
     
-    D_recons_high = librosa.stft(x_recons_high,
-                                 n_fft=510, hop_length=256)
-    D_recons = np.zeros((512, np.shape(D_low)[1]), dtype=np.complex_)
-    D_recons[:256,:] = D_low
-    #print(np.shape(D_recons_high))
-    ##D_recons[cut:512, :] = D_recons_high
-    D_recons[256:, :] = D_recons_high
-    # signal reconstruit final (avec la phase):
-    x_recons = librosa.istft(D_recons, length=l_sig, hop_length=256)
+    D_recons = librosa.stft(x_recons, n_fft=1024)
     return x_recons, D_recons
 
 

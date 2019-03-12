@@ -49,7 +49,7 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 #### signal basses fréquences seulement ####
 D1 = librosa.stft(y1, n_fft=1024)
 s_gt = librosa.istft(D1,length=l_sig1, hop_length=256)
-D_low = D1
+D_low = np.copy(D1)
 D_low[256:,:] = 0
 s_low = librosa.istft(D_low, length=l_sig1, hop_length=256)
 librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/quelques sons/s_low.wav'
@@ -60,7 +60,7 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 #### reconstruction SBR  des hautes fréquences ####
 D1_low = D1[:256,:]
 # enveloppe spectrale (moyenne de chaque trame (colonne) du spectrogramme)
-sp_env1 = f_uti.spectral_env(D1)
+sp_env1 = f_uti.spectral_env(D1) 
 # reconstruction du signal: pour les hf, on utilise les bf, chaque trame (colonne)
 # des bf est multipliée par le coefficient correspondant de l'enveloppe spectrale
 # puis GL sur les hf uniquement (on connait la phase bf).
@@ -71,5 +71,5 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 
 
 #### affichage des SNR ####
-print(' snr signal bf vs signal gt: ', f_uti.snr2(y1, s_low), '\n',
-      'snr signal recons vs signal gt: ', f_uti.snr2(y1, s1_recons))
+print(' snr signal bf vs signal gt: ', f_uti.snr2(np.abs(D1), np.abs(D_low)), '\n',
+      'snr signal recons vs signal gt: ', f_uti.snr2(np.abs(D1), np.abs(D1_recons)))
