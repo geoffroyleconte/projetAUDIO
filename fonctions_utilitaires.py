@@ -127,17 +127,17 @@ def pipeline_recons_sig_sbr(mod_low,mod_high,phase_low,phase_high,
     D[256:512,:] = mod_high*np.exp(1.0j*phase_high)
     s_gt = librosa.istft(D, hop_length=256)
     l_sig = len(s_gt)
-    librosa.output.write_wav(out_dir+'/full.wav', s_gt, 5000)
+    librosa.output.write_wav(out_dir+'/full1.wav', s_gt, 5000)
     
     D_low = np.copy(D)
     D_low[256:,:] = 0
     s_low = librosa.istft(D_low, length=l_sig, hop_length=256)
-    librosa.output.write_wav(out_dir+'/low.wav', s_low, 5000)
+    librosa.output.write_wav(out_dir+'/low1.wav', s_low, 5000)
     
     D_low = D[:256,:]
     sp_env = spectral_env(D)
     s_recons, D_recons = recons_sig(D_low, sp_env, l_sig, iterations)
-    librosa.output.write_wav(out_dir+'/recons_sbr.wav', s_recons, 5000)
+    librosa.output.write_wav(out_dir+'/recons_sbr1.wav', s_recons, 5000)
     
     D_low_padded = np.copy(D)
     D_low_padded[256:,:] = 0
@@ -145,14 +145,6 @@ def pipeline_recons_sig_sbr(mod_low,mod_high,phase_low,phase_high,
       'snr signal recons vs signal gt: ', snr2(np.abs(D), np.abs(D_recons)))
     
     return None
-
-import soundfile as sf    
-path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/out_sounds/test3/'
-sig, sr = sf.read(path+'full1.wav')
-D=librosa.stft(sig, n_fft=1024, hop_length=256)
-sig_low, sr = sf.read(path+'low1.wav')
-D_low=librosa.stft(sig_low, n_fft=1024, hop_length=256)
-sig_cnn, sr = sf.read(path+'recons_CNN1.wav')
-D_cnn=librosa.stft(sig_cnn, n_fft=1024, hop_length=256)
-sig_sbr, sr = sf.read(path+'recons_sbr1.wav')
-D_sbr=librosa.stft(sig_sbr, n_fft=1024, hop_length=256)
+    
+    
+    

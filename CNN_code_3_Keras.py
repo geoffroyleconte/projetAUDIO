@@ -67,25 +67,21 @@ m,n = np.shape(train_data)
 # architecture
 def cnn_model(width=256, height=256):
     k_size = (5,5)
-    k_init = 'he_normal'
     # input layer:
     inp = Input(shape=(width, height,1))
     # pointeur pour les couches successives
     p = inp
-    p = Conv2D(64, k_size, activation='relu', 
-               kernel_initializer=k_init, padding='same')(p)
-    p = Conv2D(32, k_size, activation='relu',
-               kernel_initializer=k_init, padding='same')(p)
-    outp = Conv2D(1, k_size, activation='relu',
-                  kernel_initializer=k_init, padding='same')(p)
+    p = Conv2D(64, k_size, activation='relu', padding='same')(p)
+    p = Conv2D(32, k_size, activation='relu', padding='same')(p)
+    outp = Conv2D(1, k_size, activation='relu', padding='same')(p)
     model = Model(inputs=[inp], outputs=[outp])
     return model
             
 # paramètres du modèle:
     
 epochs=1
-batch_size=5
-learning_rate=0.001
+batch_size=128
+learning_rate=0.0001
 
 adam_opt = keras.optimizers.Adam(lr=learning_rate)
 optimizer = adam_opt
