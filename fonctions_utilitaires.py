@@ -103,14 +103,48 @@ def recons_sig(D_low, spec_env, l_sig, iterations):
     D_recons = librosa.stft(x_recons, n_fft=1024)
     return x_recons, D_recons
 
-
-def snr2(original_sig, recons_sig):
+def snr1(original_sig, recons_sig):
     noise = original_sig-recons_sig
     P_noise = np.sum(np.square(noise))
     P_original = np.sum(np.square(original_sig))
     return 20*log10(P_original/P_noise)
 
 
+def snr2(original_mag, recons_mag):
+    noise = original_mag-recons_mag
+    P_noise = np.sum(np.square(noise))
+    P_original = np.sum(np.square(original_mag))
+    return 20*log10(P_original/P_noise)
+
+def pipeline_recons_sig_sbr(mod_low,mod_high,phase_low,phase_high, 
+                            iterations,out_dir):
+    # on connait la sortie phase high et mod_high (supposés inconnus sauf pour sp_env)
+    """arguments autorisés: D,
+    iterations pour g&l, nom signal de sortie, direction de sortie """
+    """récrit les signaux dans la direction souhaitée, affiche le snr """
+    D = np.zeros((513,np.shape(mod_low)[1]), dtype=np.complex_)
+    D[:256,:] = mod_low*np.exp(1.0j*phase_low)
+    D[256:512,:] = mod_high*np.exp(1.0j*phase_high)
+    s_gt = librosa.istft(D, hop_length=256)
+    l_sig = len(s_gt)
+    librosa.output.write_wav(out_dir+'/full.wav', s_gt, 5000)
+    
+    D_low = np.copy(D)
+    D_low[256:,:] = 0
+    s_low = librosa.istft(D_low, length=l_sig, hop_length=256)
+    librosa.output.write_wav(out_dir+'/low.wav', s_low, 5000)
+    
+    D_low = D[:256,:]
+    sp_env = spectral_env(D)
+    s_recons, D_recons = recons_sig(D_low, sp_env, l_sig, iterations)
+    librosa.output.write_wav(out_dir+'/recons_sbr.wav', s_recons, 5000)
+    
+    D_low_padded = np.copy(D)
+    D_low_padded[256:,:] = 0
+    print(' snr signal bf vs signal gt: ', snr2(np.abs(D), np.abs(D_low_padded)), '\n',
+      'snr signal recons vs signal gt: ', snr2(np.abs(D), np.abs(D_recons)))
+    
+    return None
     
     
     

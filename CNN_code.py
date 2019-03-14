@@ -17,25 +17,42 @@ import fonctions_utilitaires as f_uti
 import librosa
 # on importe une partie du jeu de données avec h5py
 
-#path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
-path = '/home/felixgontier/data/PROJET AUDIO/'
+path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
+#path = '/home/felixgontier/data/PROJET AUDIO/'
 data_path = os.path.join(path,'quelques sons/')
 
 
-h5f_1 = h5py.File(os.path.join(data_path,'data.h5'),'r')
-train_data = h5f_1['data'][:]
-h5f_1.close()
+h5f_train_data = h5py.File(os.path.join(data_path,'train_data.h5'),'r')
+train_data = h5f_train_data['train_data'][:]
+h5f_train_data.close()
 
-h5f_2 = h5py.File(os.path.join(data_path,'obj.h5'),'r')
-train_obj = h5f_2['obj'][:]
-h5f_2.close()
+h5f_test_data = h5py.File(os.path.join(data_path,'test_data.h5'),'r')
+test_data = h5f_test_data['test_data'][:]
+h5f_test_data.close()
 
+h5f_train_obj = h5py.File(os.path.join(data_path,'train_obj.h5'),'r')
+train_obj = h5f_train_obj['train_obj'][:]
+h5f_train_obj.close()
 
-train_data, test_data, train_obj, test_obj = train_test_split(train_data,
-                                                              train_obj, 
-                                                              test_size=0.33)
+h5f_test_obj = h5py.File(os.path.join(data_path,'test_obj.h5'),'r')
+test_obj = h5f_test_obj['test_obj'][:]
+h5f_test_obj.close()
 
+h5f_train_phase_data = h5py.File(os.path.join(data_path,'train_phase_data.h5'),'r')
+train_phase_data = h5f_train_phase_data['train_phase_data'][:]
+h5f_train_phase_data.close()
 
+h5f_test_phase_data = h5py.File(os.path.join(data_path,'test_phase_data.h5'),'r')
+test_phase_data = h5f_test_phase_data['test_phase_data'][:]
+h5f_test_phase_data.close()
+
+h5f_train_phase_obj = h5py.File(os.path.join(data_path,'train_phase_obj.h5'),'r')
+train_phase_obj = h5f_train_phase_obj['train_phase_obj'][:]
+h5f_train_phase_obj.close()
+
+h5f_test_phase_obj = h5py.File(os.path.join(data_path,'test_phase_obj.h5'),'r')
+test_phase_obj = h5f_test_phase_obj['test_phase_obj'][:]
+h5f_test_phase_obj.close()
 
 m,n = np.shape(train_data)
 
@@ -61,8 +78,8 @@ with graph1.as_default():
     
 # hyperparamètres:
 LEARNING_RATE = 0.05
-n_epochs = 3
-batch_size = 128
+n_epochs = 1
+batch_size = 4
 # top  (mémoire) + augmenter autant qu'on peut batch_size
 
 n_batches = int(np.ceil(m / batch_size))
@@ -114,19 +131,22 @@ with tf.Session(graph=graph1) as sess:
             
     # phase de test:
     # batches pour le test.
+    pred_obj = []
     for batch_index in range(n_batches_test):
         X_batch, Y_batch = fetch_batch(n_epochs, batch_index, batch_size)
-        pred_obj, loss_t = sess.run([logits, loss],
+        pred, loss_t = sess.run([logits, loss],
                                     feed_dict={x_data:X_batch, y_data:Y_batch})
+        for obj in pred:
+            pred_obj.append(obj)
         
         print('test', 'batch', batch_index+1, '/', n_batches_test,
               '    loss abs diff = ', loss_t)
-                        
-    
+    print(np.shape(np.array(pred_obj)))                  
+    pred_obj = np.array(pred_obj)
 # données prédites dans un fichier h5 pour pouvoir les comparer avec train_obj
-h5f_3 = h5py.File(os.path.join(data_path, 'pred_obj.h5'), 'w')
-h5f_3.create_dataset('pred_obj', data=pred_obj)
-h5f_3.close()            
+h5f_pred_obj = h5py.File(os.path.join(data_path, 'pred_obj.h5'), 'w')
+h5f_pred_obj.create_dataset('pred_obj', data=pred_obj)
+h5f_pred_obj.close()            
     
 
 # tests d'écoute de la reconstitution (on utilise l'algorithme de Griffin & Lim)

@@ -73,3 +73,9 @@ librosa.output.write_wav('C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO
 #### affichage des SNR ####
 print(' snr signal bf vs signal gt: ', f_uti.snr2(np.abs(D1), np.abs(D_low)), '\n',
       'snr signal recons vs signal gt: ', f_uti.snr2(np.abs(D1), np.abs(D1_recons)))
+
+
+
+test_out_dir = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/out_sounds/out_sounds_sbr'
+pipeline_recons_sig_sbr(np.abs(D1_low),np.abs(D1[256:512,:]),np.angle(D1_low),
+                        np.angle(D1[256:512,:]), 100, test_out_dir)
