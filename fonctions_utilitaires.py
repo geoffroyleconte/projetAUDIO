@@ -145,6 +145,14 @@ def pipeline_recons_sig_sbr(mod_low,mod_high,phase_low,phase_high,
       'snr signal recons vs signal gt: ', snr2(np.abs(D), np.abs(D_recons)))
     
     return None
-    
-    
-    
+
+import soundfile as sf    
+path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/out_sounds/test3/'
+sig, sr = sf.read(path+'full1.wav')
+D=librosa.stft(sig, n_fft=1024, hop_length=256)
+sig_low, sr = sf.read(path+'low1.wav')
+D_low=librosa.stft(sig_low, n_fft=1024, hop_length=256)
+sig_cnn, sr = sf.read(path+'recons_CNN1.wav')
+D_cnn=librosa.stft(sig_cnn, n_fft=1024, hop_length=256)
+sig_sbr, sr = sf.read(path+'recons_sbr1.wav')
+D_sbr=librosa.stft(sig_sbr, n_fft=1024, hop_length=256)
