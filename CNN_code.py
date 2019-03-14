@@ -77,21 +77,28 @@ with graph1.as_default():
     logits = tf.reshape(conv3, [-1, 256**2]) 
     
 # hyperparamètres:
-LEARNING_RATE = 0.05
-n_epochs = 1
+LEARNING_RATE = 0.0005
+n_epochs = 2
 batch_size = 4
 # top  (mémoire) + augmenter autant qu'on peut batch_size
 
 n_batches = int(np.ceil(m / batch_size))
 
 m_t, n_t = np.shape(test_data)
-n_batches_test = int(np.ceil(m_t / batch_size))
+n_batches_test = int(np.ceil(m_t / batch_size))-1
 
 def fetch_batch(epoch, batch_index, batch_size):
     rnd.seed(epoch * n_batches + batch_index)
     indices = rnd.randint(m, size=batch_size)
     X_batch = train_data[indices]
     y_batch = train_obj[indices]
+    return X_batch, y_batch
+
+def fetch_batch_test(epoch, batch_index, batch_size):
+    rnd.seed(epoch * n_batches_test + batch_index)
+    indices = rnd.randint(m_t, size=batch_size)
+    X_batch = test_data[indices]
+    y_batch = test_obj[indices]
     return X_batch, y_batch
 
 
@@ -133,22 +140,25 @@ with tf.Session(graph=graph1) as sess:
     # batches pour le test.
     pred_obj = []
     for batch_index in range(n_batches_test):
-        X_batch, Y_batch = fetch_batch(n_epochs, batch_index, batch_size)
-        pred, loss_t = sess.run([logits, loss],
+        X_batch, Y_batch = fetch_batch_test(n_epochs, batch_index, batch_size)
+        loss_t, pred = sess.run([loss, logits],
                                     feed_dict={x_data:X_batch, y_data:Y_batch})
-        for obj in pred:
-            pred_obj.append(obj)
+        
+        for i in range(len(pred)):
+            pred_obj.append(pred[i,:])
         
         print('test', 'batch', batch_index+1, '/', n_batches_test,
               '    loss abs diff = ', loss_t)
-    print(np.shape(np.array(pred_obj)))                  
+    print(np.max(logits.eval(feed_dict={x_data:np.array([test_data[0,:]])})))  
+               
     pred_obj = np.array(pred_obj)
+    
 # données prédites dans un fichier h5 pour pouvoir les comparer avec train_obj
 h5f_pred_obj = h5py.File(os.path.join(data_path, 'pred_obj.h5'), 'w')
 h5f_pred_obj.create_dataset('pred_obj', data=pred_obj)
 h5f_pred_obj.close()            
-    
-
+   
+"""
 # tests d'écoute de la reconstitution (on utilise l'algorithme de Griffin & Lim)
 # pour retrouver la phase. 
 sr=5000
@@ -184,3 +194,5 @@ librosa.output.write_wav(path_gt, sig_gl_gt, sr)
 
 snr1 = f_uti.snr2(sig_gl_gt, sig_gl)
 # >>> snr1 = 0.7263989 avec c=30
+
+"""
