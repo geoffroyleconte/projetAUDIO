@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Feb  4 10:58:14 2019
+Created on Tue Mar 19 10:22:28 2019
 
 @author: Geoffroy Leconte
-
-architecture avec Keras, couches successives de tailles qui diminuent
 """
 
 import tensorflow as tf
@@ -26,7 +24,7 @@ from keras.callbacks import TensorBoard
 
 path = 'C:/Users/Geoffroy Leconte/Documents/cours/projet AUDIO/'
 #path = '/home/felixgontier/data/PROJET AUDIO/'
-data_path = os.path.join(path,'quelques sons/')
+data_path = os.path.join(path,'quelques sons/one_speaker/')
 
 
 h5f_train_data = h5py.File(os.path.join(data_path,'train_data.h5'),'r')
@@ -80,7 +78,7 @@ def cnn_model(width=256, height=256):
 # paramètres du modèle:
     
 epochs=1
-batch_size=4
+batch_size=128
 learning_rate=0.0001
 
 adam_opt = keras.optimizers.Adam(lr=learning_rate)
@@ -90,6 +88,8 @@ metrics = [MSE]
 
 model = cnn_model()
 model.summary()
+
+
 model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
 
@@ -113,25 +113,21 @@ class LossHistory(keras.callbacks.Callback):
         
 # afficher fonction de coût à chaque batch:
 history = LossHistory()
-# early_stopping:
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0,
                                            patience=0, verbose=0, mode='auto')
-
-
 callbacks = [early_stop, history, 
-             keras.callbacks.ModelCheckpoint(filepath=os.path.join(data_path,'best_model.h5'), 
+             keras.callbacks.ModelCheckpoint(filepath=os.path.join(data_path,'best_model_1speak.h5'), 
                              monitor='val_loss', save_best_only=True)]
-             
 model.fit(x=train_data, y=train_obj, 
-          batch_size=batch_size, epochs=epochs, callbacks=callbacks,
-          validation_data=(test_data,test_obj))
+          batch_size=batch_size, epochs=epochs,callbacks=callbacks)
 
-plt.figure(1)
+
 plt.plot(history.losses)
-plt.title('training loss (MSE)')
+plt.title('loss (MSE)')
 plt.ylabel('loss')
 plt.xlabel('batch_index')
 plt.show()
+
 
 eval_loss = model.evaluate(test_data, test_obj, batch_size=batch_size)
 
