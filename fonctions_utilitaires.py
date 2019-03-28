@@ -80,6 +80,18 @@ def spectral_env(D):#même taille
         spec_env.append(high_mean_trame/low_mean_trame)
     return np.array(spec_env)
 
+def spectral_env_glob(D):
+    m,n = np.shape(D)
+    D = D[0:(m-1),:]
+    mod_low = np.abs(D[:(m-1)//2,:])
+    mod_high = np.abs(D[(m-1)//2:,:])
+    low_sum = np.sum(mod_low)
+    if low_sum==0:
+        low_sum = 1e-4
+    high_sum = np.sum(mod_high)
+    spec_env = high_sum/low_sum
+    # renvoie un float
+    return spec_env
 
 def recons_sig(D_low, spec_env, l_sig, iterations):
     """reconstruction du signal par SBR"""
@@ -90,6 +102,26 @@ def recons_sig(D_low, spec_env, l_sig, iterations):
     # colonnes de mod_low multipliées par spec env.
     for i in range(np.shape(mod_high_recons)[1]):
         mod_high_recons[:,i] = mod_high_recons[:,i] * spec_env[i]
+        
+    print(np.shape(mod_high_recons))
+    #griffin and lim (seulement partie haute fréquence)
+    ##### griffin & lim sur tout le signal et pas seulement hf
+    D_sig = np.zeros((513, np.shape(D_low)[1]), dtype=np.complex_)
+    D_sig[0:256, :] = D_low
+    D_sig[256:512,:] = mod_high_recons
+    x_recons = reconstruct_sig_griffin_lim(D_sig,
+                                                l_sig, iterations, 1024, 256)
+    
+    D_recons = librosa.stft(x_recons, n_fft=1024)
+    return x_recons, D_recons
+
+def recons_sig_glob(D_low, spec_env, l_sig, iterations):
+    """reconstruction du signal par SBR"""
+    # l_sig et iter pour griffin and lim
+    
+    mod_low = np.abs(D_low)
+    mod_high_recons = mod_low * spec_env
+    # colonnes de mod_low multipliées par spec env.
         
     print(np.shape(mod_high_recons))
     #griffin and lim (seulement partie haute fréquence)
